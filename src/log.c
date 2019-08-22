@@ -96,20 +96,23 @@ void log_log(int level, const char *file, int line, const char *fmt, ...) {
   lock();
 
   /* Get current time */
-  time_t t = time(NULL);
+  // time_t t = time(NULL);
+  struct timespec ts;
+  clock_gettime(CLOCK_REALTIME, &ts);
+  time_t t = ts.tv_sec;
   struct tm *lt = localtime(&t);
 
   /* Log to stderr */
   if (!L.quiet) {
     va_list args;
-    char buf[16];
-    buf[strftime(buf, sizeof(buf), "%H:%M:%S", lt)] = '\0';
+    char buf[32];
+    buf[strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S", lt)] = '\0';
 #ifdef LOG_USE_COLOR
     fprintf(
       stderr, "%s %s%-5s\x1b[0m \x1b[90m%s:%d:\x1b[0m ",
       buf, level_colors[level], level_names[level], file, line);
 #else
-    fprintf(stderr, "%s %-5s %s:%d: ", buf, level_names[level], file, line);
+    fprintf(stderr, "%s.%03ld %-5s %s:%d: ", buf, ts.tv_nsec/1000000, level_names[level], file, line);
 #endif
     va_start(args, fmt);
     vfprintf(stderr, fmt, args);
@@ -123,7 +126,7 @@ void log_log(int level, const char *file, int line, const char *fmt, ...) {
     va_list args;
     char buf[32];
     buf[strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S", lt)] = '\0';
-    fprintf(L.fp, "%s %-5s %s:%d: ", buf, level_names[level], file, line);
+    fprintf(L.fp, "%s.%03ld %-5s %s:%d: ", buf, ts.tv_nsec/1000000, level_names[level], file, line);
     va_start(args, fmt);
     vfprintf(L.fp, fmt, args);
     va_end(args);
